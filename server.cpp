@@ -22,6 +22,6 @@ int main() {
         cout << "Accepted connection\n";
         // Read HTTP request
         // Give HTTP response header
-        // Give Vorbis video
+        // Give Theora video
     }
 }

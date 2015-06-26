@@ -13,7 +13,7 @@ profile: FLAGS += -pg
 profile: all
 
 all : server.cpp
-	g++ $(FLAGS) -o out server.cpp 
+	g++ $(FLAGS) -lboost_iostreams -lboost_system -o out server.cpp 
 
 # make clean - remove .o files.  You can modify it to remove whatever
 clean:

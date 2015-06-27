@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <cstring>
 #include <string>
+#include <sstream>
 
 #include <boost/asio.hpp>
 
@@ -15,60 +17,45 @@ int main() {
 
 
     while (true) {
-        boost::asio::streambuf req;
+        boost::asio::streambuf req, filebuf, headerbuf;
 
         acceptor.accept(socket);
         // socket is now open
         std::cout << "Accepted connection\n";
         
         // Read HTTP request
-        size_t req_size = boost::asio::read_until(socket, req, "\r\n\r\n");
+        boost::asio::read_until(socket, req, "\r\n\r\n");
 
-        boost::asio::streambuf::const_buffers_type bufs = req.data();
         std::string s(
-                boost::asio::buffers_begin(bufs),
-                boost::asio::buffers_begin(bufs) + req_size);
+                boost::asio::buffers_begin(req.data()),
+                boost::asio::buffers_end(req.data()));
 
-        std::cout << s;
-        std::cout << std::endl;
+        std::cout << s << std::endl;
 
+        std::ifstream fstr("./sample_html.html");
+        std::ostream file_stream(&filebuf);
+        file_stream << fstr.rdbuf();
+        fstr.close();
+
+
+        std::ostream header_stream(&headerbuf);
+        header_stream << "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: ";
+        header_stream << filebuf.size() << "\r\n\r\n";
+
+        s = std::string(
+                boost::asio::buffers_begin(headerbuf.data()),
+                boost::asio::buffers_end(headerbuf.data()));
+
+        std::cout << s << std::endl;
+
+        s = std::string(
+                boost::asio::buffers_begin(filebuf.data()),
+                boost::asio::buffers_end(filebuf.data()));
+
+        std::cout << s << std::endl;
+
+        boost::asio::write(socket, headerbuf);
+        boost::asio::write(socket, filebuf);
         socket.close();
-
-        // // Get content from file
-        // // TODO: Change hardcoded filename
-        // char *file_end = file_buf;
-        // int fd = open("./sample_html.html", O_RDONLY);
-        // if (fd == -1) return -1;
-        // ssize_t ret;
-        // do {
-        //     ret = read(fd, file_end, sizeof(file_buf) - (file_end-file_buf));
-        //     file_end += ret;
-        // } while (ret != 0 && ret != -1);
-        // 
-        // long content_length = file_end - file_buf;
-        // string cont_len = to_string(content_length);
-
-        // // Store HTTP response header in buf
-        // char *headerptr = send_buf;
-        // // TODO set Content-Type on the fly
-        // char first_line[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: ";
-        // memcpy(headerptr, first_line, sizeof(first_line) - 1);
-        // headerptr += sizeof(first_line) - 1;
-        // memcpy(headerptr, cont_len.c_str(), cont_len.size());
-        // headerptr += cont_len.size();
-        // memcpy(headerptr, "\r\n\r\n", 4);
-        // headerptr += 4;
-        // 
-        // // Store content in buf
-        // memcpy(headerptr, file_buf, content_length);
-        // headerptr += content_length;
-        // cout << send_buf << endl;
-        // char* sendptr = send_buf;
-
-        // // Send buf back to browser
-        // while (sendptr != headerptr) {
-        //     sendptr += send(conn_sock, sendptr, headerptr - sendptr, 0);
-        // }
-        // close(conn_sock);
     }
 }
